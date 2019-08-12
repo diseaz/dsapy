@@ -3,20 +3,25 @@
 
 import os
 import os.path
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 
 
-class Ctx(object):
-    def __init__(self):
-        self.tempdir = 'tmp'
-        self.root_path = os.path.abspath('../..')
+class TestDsapyApp(unittest.TestCase):
+
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+        self.root_path = os.path.abspath('..')
         self.main_module = []
         self.modules = []
         self.current = self.main_module
         self.mod_names = []
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
 
     def file_prefix(self):
         return '''
@@ -134,10 +139,31 @@ if __name__ == '__main__':
         ]
         return self.gen_main()
 
-    def run(self):
+    def execute(self):
         main_path = self.generate()
         p = subprocess.run(['python3', main_path, '--log-level=info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         return p.stdout, p.stderr
+
+
+    def test_simple_ok(self):
+        out, err = (
+            self
+            .module()
+            .init_ok('1')
+            .module()
+            .init_ok('2')
+            .module()
+            .fini_ok('1')
+            .module()
+            .fini_ok('2')
+            .module()
+            .wrapper_ok('1')
+            .module()
+            .wrapper_ok('2')
+            .execute()
+        )
+        self.assertEqual(out, '')
+        self.assertEqual(err, 'wrapper 1 start\nwrapper 2 start\ninit 1\ninit 2\nmain\nfini 2\nfini 1\nwrapper 2 end\nwrapper 1 end\n')
 
 
 def strip_prefix(prefix, s):
@@ -154,28 +180,6 @@ def strip_suffix(suffix, s):
 
 def module_name(module_path):
     return strip_suffix('.py', os.path.basename(module_path))
-
-
-class TestDsapyApp(unittest.TestCase):
-    def test_simple_ok(self):
-        out, err = (
-            Ctx()
-            .module()
-            .init_ok('1')
-            .module()
-            .init_ok('2')
-            .module()
-            .fini_ok('1')
-            .module()
-            .fini_ok('2')
-            .module()
-            .wrapper_ok('1')
-            .module()
-            .wrapper_ok('2')
-            .run()
-        )
-        self.assertEqual(out, '')
-        self.assertEqual(err, 'wrapper 1 start\nwrapper 2 start\ninit 1\ninit 2\nmain\nfini 2\nfini 1\nwrapper 2 end\nwrapper 1 end\n')
 
 
 if __name__ == '__main__':

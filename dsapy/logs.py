@@ -13,13 +13,13 @@ def _level_key(lvl):
         if 'alias' in level_record:
             lvl = level_record['alias']
             continue
-    return (-level_record['level'], len(level_record['format']))
+        return (-level_record['level'], len(level_record['format']))
 
 
 @flag.DefaultManager.argroup('Logging')
 def _flags(argroup):
     levels = list(base_logs.Levels.keys())
-    # levels.sort(key=_level_key)
+    levels.sort(key=_level_key)
 
     argroup.add_argument(
         '--log-level',
