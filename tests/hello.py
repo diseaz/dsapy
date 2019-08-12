@@ -11,16 +11,16 @@ from dsapy import flag
 def _options(argroup):
     argroup.add_argument(
         '--who',
+        default='world',
         help='Who to greet',
     )
 
 
 @flag.main()
 def main(flags, **kwargs):
-    """Simple example that raises an unhandled exception in main.
+    """Simplest helloworld example
     """
-    greeting = 'Hello, ' + flags.who + '!'
-    print(greeting)
+    print('Hello, {}!'.format(flags.who))
 
 
 if __name__ == '__main__':

@@ -3,9 +3,6 @@
 
 import argparse
 
-from . import base_app as app
-from . import base_logs as logs
-
 
 class Manager(object):
     def __init__(self):
@@ -15,14 +12,23 @@ class Manager(object):
     def main(self, description=None, prog=None, usage=None, epilog=None):
         def wrapper(func):
             self.main_params = {
-                'kwargs': {
-                    'description': description,
-                    'prog': prog,
-                    'usage': usage,
-                    'epilog': epilog,
-                },
                 'func': func,
+                'kwargs': {
+                    'description': func.__doc__,
+                },
             }
+            kwargs = {
+                'description': description,
+                'prog': prog,
+                'usage': usage,
+                'epilog': epilog,
+            }
+            # print('kwargs(before): {!r}'.format(kwargs))
+            for k in list(kwargs.keys()):
+                if kwargs[k] is None:
+                    del kwargs[k]
+            # print('kwargs(after): {!r}'.format(kwargs))
+            self.main_params['kwargs'].update(kwargs)
             return func
         return wrapper
 
@@ -42,10 +48,15 @@ class Manager(object):
         argparser = argparse.ArgumentParser(
             formatter_class=DefaultFormatter,
             fromfile_prefix_chars='@',
-            **self.main_params
+            **self.main_params['kwargs']
         )
         self.populate_argparser(argparser)
         return argparser.parse_args(*args, **kwargs)
+
+    def parse_flags(self, **kwargs):
+        flags = self.parse_args()
+        kwargs['flags'] = flags
+        yield kwargs
 
 
 class DefaultFormatter(

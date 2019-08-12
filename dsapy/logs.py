@@ -25,16 +25,19 @@ def _flags(argroup):
         '--log-level',
         choices=levels,
         default=base_logs._getDefaultLevelName(),
-        help='Logging level',
+        metavar='LEVEL',
+        help='Logging level. Supported values: {0}'.format(', '.join(levels)),
     )
     argroup.add_argument(
         '--log-format',
         default=None,
+        metavar='FORMAT',
         help='Log record format',
     )
     argroup.add_argument(
         '--log-datefmt',
         default=None,
+        metavar='DATEFMT',
         help='Datetime format for logging',
     )
 
