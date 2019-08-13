@@ -13,6 +13,7 @@ import unittest
 class TestDsapyApp(unittest.TestCase):
 
     def setUp(self):
+        self.maxDiff = None
         self.tempdir = tempfile.mkdtemp()
         self.root_path = os.path.abspath('..')
         self.main_module = []

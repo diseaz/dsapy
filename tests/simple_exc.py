@@ -15,7 +15,7 @@ def _options(argroup):
     )
 
 
-@flag.main()
+@app.main()
 def main(flags, **kwargs):
     """Simple example that raises an unhandled exception in main.
     """
