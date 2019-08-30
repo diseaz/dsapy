@@ -43,13 +43,12 @@ class Manager(object):
     def wrap_main_func(self, func, add_arguments=None, parser_kwargs={}):
         if func is None:
             return None
-        doc = func.__doc__ or parser_kwargs.get('description')
+        doc = parser_kwargs.get('description') or func.__doc__
         help = None if doc is None else doc.split('\n', 1)[0]
         kwargs = {
             'description': doc,
             'help': help,
         }
-        kwargs.update(getattr(func, 'parser_kwargs', func.__dict__))
         kwargs.update(parser_kwargs)
         func.parser_kwargs = kwargs
         func.add_arguments = add_arguments

@@ -64,3 +64,6 @@ class Command(metaclass=_commandMeta, skip=True):
     @classmethod
     def add_arguments(cls, argparser):
         return
+
+    def main(self):
+        return
