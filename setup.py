@@ -9,7 +9,7 @@ setuptools.setup(
     name="diseaz-dsapy",
     version="0.0.2",
     author="Dmitry Azhichakov",
-    author_email="diseaz@github.com",
+    author_email="dazhichakov@gmail.com",
     description="Simple basic framework for command-line tools",
     long_description=long_description,
     long_description_content_type="text/markdown",
