@@ -2,7 +2,9 @@
 # -*- mode: python; coding: utf-8 -*-
 
 import argparse
+import inspect
 import logging
+import sys
 
 _logger = logging.getLogger(__name__)
 
@@ -43,7 +45,7 @@ class Manager(object):
     def wrap_main_func(self, func, add_arguments=None, parser_kwargs={}):
         if func is None:
             return None
-        doc = parser_kwargs.get('description') or func.__doc__
+        doc = parser_kwargs.get('description') or func.__doc__ or getattr(inspect.getmodule(func), '__doc__')
         help = None if doc is None else doc.split('\n', 1)[0]
         kwargs = {
             'description': doc,

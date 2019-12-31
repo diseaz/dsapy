@@ -5,6 +5,7 @@
 
 import collections
 import contextlib
+import inspect
 import sys
 
 
@@ -35,7 +36,11 @@ class Manager(object):
 
     def start(self, main_func=None):
         with contextlib.ExitStack() as estack:
-            kwargs = {}
+            cf = inspect.getouterframes(inspect.currentframe())[1]
+
+            kwargs = {
+                'description': cf.frame.f_globals.get('__doc__'),
+            }
             if main_func is not None:
                 kwargs['main_func'] = main_func
             for w in self.wrappers:
