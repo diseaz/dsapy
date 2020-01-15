@@ -38,9 +38,7 @@ class Manager(object):
         with contextlib.ExitStack() as estack:
             cf = inspect.getouterframes(inspect.currentframe())[1]
 
-            kwargs = {
-                'description': cf.frame.f_globals.get('__doc__'),
-            }
+            kwargs = {}
             if main_func is not None:
                 kwargs['main_func'] = main_func
             for w in self.wrappers:
