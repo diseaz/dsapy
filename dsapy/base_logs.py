@@ -4,7 +4,7 @@
 import logging
 import os
 
-_default_format_long = '%(asctime)s %(levelname)s %(name)s:%(lineno)d: %(message)s'
+_default_format_long = '%(asctime)s %(levelname)s %(name)s@%(lineno)d: %(message)s'
 _default_format_short = '%(asctime)s %(message)s'
 _default_format_tiny = '%(message)s'
 _default_datefmt = '%Y-%m-%d %H:%M:%S'
@@ -46,10 +46,14 @@ Levels = {
 }
 
 DefaultLevel = 'normal'
+OverrideEnvLevel = None
 
 
 def _getDefaultLevelName():
-    log_level = os.environ.get('DSAPY_LOG_LEVEL', DefaultLevel).lower()
+    log_level = (
+        OverrideEnvLevel or
+        os.environ.get('DSAPY_LOG_LEVEL', (OverrideEnvLevel or DefaultLevel))
+    ).lower()
     while True:
         if log_level not in Levels:
             log_level = DefaultLevel

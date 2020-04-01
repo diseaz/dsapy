@@ -56,3 +56,7 @@ def _init(**kwargs):
     basicConfig(**basic_args)
 
     yield kwargs
+
+
+def overrideEnvLevel(level):
+    base_logs.OverrideEnvLevel = level

@@ -69,7 +69,12 @@ class Manager(object):
         for cmd in commands:
             kwargs = cmd.parser_kwargs.copy()
             n = kwargs.pop('name', getattr(cmd, 'name', getattr(cmd, '__name__', None)))
-            parser = subparsers.add_parser(name=n, **kwargs)
+            parser = subparsers.add_parser(
+                name=n,
+                formatter_class=DefaultFormatter,
+                fromfile_prefix_chars='@',
+                **kwargs,
+            )
             self.populate_single_command_argparser(parser, cmd)
 
     def detect_mode(self, main_func=None, force_subcommands=False):
