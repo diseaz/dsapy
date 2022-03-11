@@ -19,5 +19,9 @@ def main(flags, **kwargs):
     print('Hello, {}!'.format(flags.who))
 
 
-if __name__ == '__main__':
+def run():
     app.start()
+
+
+if __name__ == '__main__':
+    run()

@@ -6,6 +6,8 @@ import inspect
 import logging
 import sys
 
+from . import app
+
 _logger = logging.getLogger(__name__)
 
 
@@ -22,21 +24,19 @@ class Manager(object):
         self.argparsers = []
         self.subcommands = []
 
-    def main(self, add_arguments=None, **parser_kwargs):
-        def wrapper(func):
-            self.subcommands.append(self.wrap_main_func(func, add_arguments, parser_kwargs))
-            return func
-        return wrapper
+    def register_main(self, main_func, add_arguments=None, **kwargs):
+        self.subcommands.append(self.wrap_main_func(main_func, add_arguments, kwargs))
+        return main_func
 
     def argroup(self, title, *args, **kwargs):
-        def wrapper(func):
+        def argroup_wrapper(func):
             def argparser(parser):
                 pargs = (title,) + args
                 argroup = parser.add_argument_group(*pargs, **kwargs)
                 return func(argroup)
             self.argparsers.append(argparser)
             return func
-        return wrapper
+        return argroup_wrapper
 
     def argparser(self, func):
         self.argparsers.append(func)
@@ -87,7 +87,7 @@ class Manager(object):
         seen = {}
         mains = []
         for s in self.subcommands:
-            n = getattr(s, 'name', getattr(s, '__name__', None))
+            n = getattr(s, 'name', None) or getattr(s, '__name__', None)
             if n is None:
                 mains.append(s)
             elif n in seen:
@@ -141,10 +141,11 @@ class Manager(object):
             return self.parse_single_command_args(commands[0], **kwargs)
 
     def parse_flags(self, main_func=None, force_subcommands=False, **kwargs):
-        main_func = self.wrap_main_func(main_func, parser_kwargs=kwargs)
+        if main_func is not None and not hasattr(main_func, 'add_arguments'):
+            main_func = self.wrap_main_func(main_func)
         flags = self.parse_args(main_func=main_func, force_subcommands=force_subcommands, **kwargs)
         kwargs['flags'] = flags
-        kwargs['main_func'] = getattr(flags, 'main_func', None)
+        kwargs['main_func'] = getattr(flags, 'main_func', main_func)
         yield kwargs
 
 
@@ -156,3 +157,5 @@ class DefaultFormatter(
 
 
 DefaultManager = Manager()
+app.onmain(DefaultManager.parse_flags)
+app.onwrapmain(DefaultManager.register_main)

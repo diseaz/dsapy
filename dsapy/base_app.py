@@ -5,7 +5,6 @@
 
 import collections
 import contextlib
-import inspect
 import sys
 
 
@@ -22,6 +21,7 @@ class Manager(object):
         self.inits = []
         self.finis = []
         self.wrappers = []
+        self.onwrap = []
 
     def init(self, func):
         self.inits.append(func)
@@ -34,9 +34,20 @@ class Manager(object):
             contextlib.contextmanager(func)
         )
 
+    def onwrapmain(self, handler_func=None):
+        self.onwrap.append(handler_func)
+        return handler_func
+
+    def main(self, **kwargs):
+        def main_wrapper(main_func):
+            for handler in self.onwrap:
+                main_func = handler(main_func, **kwargs)
+            return main_func
+        return main_wrapper
+
     def start(self, main_func=None):
         with contextlib.ExitStack() as estack:
-            cf = inspect.getouterframes(inspect.currentframe())[1]
+            # cf = inspect.getouterframes(inspect.currentframe())[1]
 
             kwargs = {}
             if main_func is not None:

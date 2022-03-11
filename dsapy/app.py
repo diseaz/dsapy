@@ -7,18 +7,19 @@ import logging
 import sys
 
 from . import base_app
-from . import base_flag
 
 _logger = logging.getLogger(__name__)
 
 init = base_app.DefaultManager.init
 fini = base_app.DefaultManager.fini
 onmain = base_app.DefaultManager.onmain
+onwrapmain = base_app.DefaultManager.onwrapmain
 start = base_app.DefaultManager.start
-main = base_flag.DefaultManager.main
+main = base_app.DefaultManager.main
 
 Error = base_app.Error
 BrokenWrapperError = base_app.BrokenWrapperError
+
 
 @onmain
 def _handle_exceptions(**kwargs):
@@ -29,10 +30,6 @@ def _handle_exceptions(**kwargs):
     except:
         _logger.error('Unhandled exception', exc_info=True)
         sys.exit(1)
-
-
-from . import flag
-from . import logs
 
 
 class _commandMeta(type):
