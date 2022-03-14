@@ -7,6 +7,7 @@ import logging
 import sys
 
 from . import base_app
+from . import base_flag
 
 _logger = logging.getLogger(__name__)
 
@@ -37,18 +38,21 @@ class _commandMeta(type):
         skip = kwds.pop('skip', False)
         new_cls = super().__new__(cls, name, bases, namespace, **kwds)
 
-        if not skip:
-            parser_kwargs = {
-                'description': new_cls.__doc__,
-                'add_arguments': getattr(new_cls, 'add_arguments', None),
-            }
-            parser_kwargs.update(getattr(new_cls, 'parser_kwargs', {}))
+        if skip:
+            return new_cls
 
-            def main_func(**kwargs):
-                return new_cls(**kwargs).main()
+        parser_kwargs = getattr(new_cls, 'parser_kwargs', {}).copy()
+        if new_cls.__doc__:
+            parser_kwargs['description'] = new_cls.__doc__
+        if hasattr(new_cls, 'add_arguments'):
+            parser_kwargs['add_arguments'] = new_cls.add_arguments
 
-            main_func.name = getattr(new_cls, 'name', name)
-            main(**parser_kwargs)(main_func)
+        def main_func(**kwargs):
+            return new_cls(**kwargs).main()
+
+        main_func.name = getattr(new_cls, 'name', name)
+        main(**parser_kwargs)(main_func)
+
         return new_cls
 
 

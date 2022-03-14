@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="diseaz-dsapy",
-    version="0.0.2",
+    version="0.0.3",
     author="Dmitry Azhichakov",
     author_email="dazhichakov@gmail.com",
     description="Simple basic framework for command-line tools",

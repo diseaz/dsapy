@@ -18,52 +18,52 @@ class BrokenWrapperError(Error):
 
 class Manager(object):
     def __init__(self):
-        self.inits = []
-        self.finis = []
-        self.wrappers = []
-        self.onwrap = []
+        self.__init = []
+        self.__fini = []
+        self.__onmain = []
+        self.__onwrapmain = []
 
     def init(self, func):
-        self.inits.append(func)
+        self.__init.append(func)
 
     def fini(self, func):
-        self.finis.append(func)
+        self.__fini.append(func)
 
     def onmain(self, func):
-        self.wrappers.append(
+        self.__onmain.append(
             contextlib.contextmanager(func)
         )
 
-    def onwrapmain(self, handler_func=None):
-        self.onwrap.append(handler_func)
-        return handler_func
+    def onwrapmain(self, handler_func):
+        self.__onwrapmain.append(handler_func)
 
     def main(self, **kwargs):
         def main_wrapper(main_func):
-            for handler in self.onwrap:
+            for handler in self.__onwrapmain:
                 main_func = handler(main_func, **kwargs)
             return main_func
         return main_wrapper
 
     def start(self, main_func=None):
         with contextlib.ExitStack() as estack:
-            # cf = inspect.getouterframes(inspect.currentframe())[1]
+            for f in self.__fini:
+                estack.callback(f)
 
             kwargs = {}
             if main_func is not None:
                 kwargs['main_func'] = main_func
-            for w in self.wrappers:
-                kwargs = estack.enter_context(w(**kwargs))
 
-            for f in self.inits:
-                f()
+            for f in self.__init:
+                new_kwargs = f(**kwargs)
+                if new_kwargs is not None:
+                    kwargs = new_kwargs
+
+            for w in self.__onmain:
+                kwargs = estack.enter_context(w(**kwargs))
 
             main_func = kwargs.pop('main_func', None)
             if main_func is not None:
                 main_func(**kwargs)
-
-            for f in self.finis[::-1]:
-                f()
 
 
 DefaultManager = Manager()

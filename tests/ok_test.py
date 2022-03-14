@@ -107,6 +107,7 @@ def main(**kwargs):
     logs.info('main')
 
 if __name__ == '__main__':
+    logs.overrideEnvLevel('info')
     app.start(main)
 '''
 
@@ -142,7 +143,9 @@ if __name__ == '__main__':
 
     def execute(self):
         main_path = self.generate()
-        p = subprocess.run(['python3', main_path, '--log-level=info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        env = os.environ.copy()
+        env['DSAPY_LOG_LEVEL'] = 'info'
+        p = subprocess.run(['python3', main_path, '--log-level=info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=env)
         return p.stdout, p.stderr
 
 
@@ -163,8 +166,8 @@ if __name__ == '__main__':
             .wrapper_ok('2')
             .execute()
         )
-        self.assertEqual(out, '')
-        self.assertEqual(err, 'wrapper 1 start\nwrapper 2 start\ninit 1\ninit 2\nmain\nfini 2\nfini 1\nwrapper 2 end\nwrapper 1 end\n')
+        self.assertEqual('', out)
+        self.assertEqual('init 1\ninit 2\nwrapper 1 start\nwrapper 2 start\nmain\nwrapper 2 end\nwrapper 1 end\nfini 2\nfini 1\n', err)
 
 
 def strip_prefix(prefix, s):

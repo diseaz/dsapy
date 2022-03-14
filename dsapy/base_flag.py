@@ -6,7 +6,7 @@ import inspect
 import logging
 import sys
 
-from . import app
+from . import base_app
 
 _logger = logging.getLogger(__name__)
 
@@ -157,5 +157,5 @@ class DefaultFormatter(
 
 
 DefaultManager = Manager()
-app.onmain(DefaultManager.parse_flags)
-app.onwrapmain(DefaultManager.register_main)
+base_app.DefaultManager.onmain(DefaultManager.parse_flags)
+base_app.DefaultManager.onwrapmain(DefaultManager.register_main)

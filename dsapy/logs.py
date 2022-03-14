@@ -2,9 +2,10 @@
 # -*- mode: python; coding: utf-8 -*-
 
 from logging import *
-from . import base_app as app
-from . import base_logs
-from . import base_flag as flag
+
+from dsapy import app
+from dsapy import flag
+from dsapy import base_logs
 
 
 def _level_key(lvl):
@@ -16,15 +17,16 @@ def _level_key(lvl):
         return (-level_record['level'], len(level_record['format']))
 
 
-@flag.DefaultManager.argroup('Logging')
+@flag.argroup('Logging')
 def _flags(argroup):
     levels = list(base_logs.Levels.keys())
     levels.sort(key=_level_key)
+    defaultLevel = base_logs._getDefaultLevelName()
 
     argroup.add_argument(
         '--log-level',
         choices=levels,
-        default=base_logs._getDefaultLevelName(),
+        default=defaultLevel,
         metavar='LEVEL',
         help='Logging level. Supported values: {0}'.format(', '.join(levels)),
     )
@@ -42,7 +44,7 @@ def _flags(argroup):
     )
 
 
-@app.DefaultManager.onmain
+@app.onmain
 def _init(**kwargs):
     root_logger = getLogger()
     root_logger.handlers = []

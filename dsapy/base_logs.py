@@ -3,6 +3,9 @@
 
 import logging
 import os
+import sys
+import traceback
+
 
 _default_format_long = '%(asctime)s %(levelname)s %(name)s@%(lineno)d: %(message)s'
 _default_format_short = '%(asctime)s %(message)s'
@@ -50,10 +53,11 @@ OverrideEnvLevel = None
 
 
 def _getDefaultLevelName():
+    envLogLevel = os.environ.get('DSAPY_LOG_LEVEL', None)
     log_level = (
-        OverrideEnvLevel or
-        os.environ.get('DSAPY_LOG_LEVEL', (OverrideEnvLevel or DefaultLevel))
+        OverrideEnvLevel or envLogLevel or DefaultLevel
     ).lower()
+
     while True:
         if log_level not in Levels:
             log_level = DefaultLevel
@@ -61,6 +65,5 @@ def _getDefaultLevelName():
         if 'alias' not in level_record:
             return log_level
         log_level = level_record['alias']
-
 
 logging.basicConfig(**Levels[_getDefaultLevelName()])
