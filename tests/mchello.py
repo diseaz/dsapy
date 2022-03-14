@@ -3,13 +3,12 @@
 
 import logging
 from dsapy import app
-#from dsapy import flag
 
 
 _logger = logging.getLogger(__name__)
 
 
-def _options(parser):
+def _options1(parser):
     parser.add_argument(
         '--who',
         default='world',
@@ -17,16 +16,28 @@ def _options(parser):
     )
 
 
-@app.main(add_arguments=_options)
+def _options2(parser):
+    parser.add_argument(
+        '-t', '--target',
+        default='world',
+        help='Say hello to who?',
+    )
+
+
+@app.main(add_arguments=_options1)
 def greet(flags, **kwargs):
     """Greets someone."""
     print('Greetings, {}!'.format(flags.who))
 
 
-@app.main(add_arguments=_options)
+@app.main(
+    add_arguments=_options2,
+    description='Says hello to anybody.\nAnybody is "world" by default.',
+    help='Helloes someone.',
+)
 def hello(flags, **kwargs):
     """Says hello."""
-    print('Hello, {}!'.format(flags.who))
+    print('Hello, {}!'.format(flags.target))
 
 
 class Say(app.Command):

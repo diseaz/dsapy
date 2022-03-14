@@ -16,54 +16,68 @@ class BrokenWrapperError(Error):
     """Something wrong with wrapper for main."""
 
 
-class Manager(object):
-    def __init__(self):
-        self.__init = []
-        self.__fini = []
-        self.__onmain = []
-        self.__onwrapmain = []
-
-    def init(self, func):
-        self.__init.append(func)
-
-    def fini(self, func):
-        self.__fini.append(func)
-
-    def onmain(self, func):
-        self.__onmain.append(
-            contextlib.contextmanager(func)
-        )
-
-    def onwrapmain(self, handler_func):
-        self.__onwrapmain.append(handler_func)
-
-    def main(self, **kwargs):
-        def main_wrapper(main_func):
-            for handler in self.__onwrapmain:
-                main_func = handler(main_func, **kwargs)
-            return main_func
-        return main_wrapper
-
-    def start(self, main_func=None):
-        with contextlib.ExitStack() as estack:
-            for f in self.__fini:
-                estack.callback(f)
-
-            kwargs = {}
-            if main_func is not None:
-                kwargs['main_func'] = main_func
-
-            for f in self.__init:
-                new_kwargs = f(**kwargs)
-                if new_kwargs is not None:
-                    kwargs = new_kwargs
-
-            for w in self.__onmain:
-                kwargs = estack.enter_context(w(**kwargs))
-
-            main_func = kwargs.pop('main_func', None)
-            if main_func is not None:
-                main_func(**kwargs)
+class _globals:
+    init = []
+    fini = []
+    onmain = []
+    onwrapmain = []
+    main = []
 
 
-DefaultManager = Manager()
+def init(func):
+    _globals.init.append(func)
+
+
+def fini(func):
+    _globals.fini.append(func)
+
+
+def onmain(func):
+    _globals.onmain.append(
+        contextlib.contextmanager(func)
+    )
+
+
+def onwrapmain(handler_func):
+    _globals.onwrapmain.append(handler_func)
+
+
+def main(**kwargs):
+    '''Declares a function to be a main function.
+
+    There can be any number of main functions declared: 0, 1 or more.  It's
+    up to 'onwrapmain', 'init' and 'onmain' handlers to select one of
+    several or provide a replacement.  Selection may be based e.g. on
+    command line flags.
+    '''
+    def main_wrapper(main_func):
+        for handler in _globals.onwrapmain:
+            main_func = handler(main_func, **kwargs)
+        _globals.main.append(main_func)
+        return main_func
+    return main_wrapper
+
+
+def get_commands():
+    return _globals.main
+
+
+def start(main_func=None, **kwargs):
+    with contextlib.ExitStack() as estack:
+        for f in _globals.fini:
+            estack.callback(f)
+
+        if main_func is not None:
+            kwargs['main_func'] = main_func
+
+        for f in _globals.init:
+            new_kwargs = f(**kwargs)
+            if new_kwargs is not None:
+                kwargs = new_kwargs
+
+        for w in _globals.onmain:
+            kwargs = estack.enter_context(w(**kwargs))
+
+        main_func = kwargs.pop('main_func', None)
+        if main_func is not None:
+            main_func(**kwargs)

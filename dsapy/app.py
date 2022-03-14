@@ -6,20 +6,10 @@
 import logging
 import sys
 
-from . import base_app
+from .base_app import *
 from . import base_flag
 
 _logger = logging.getLogger(__name__)
-
-init = base_app.DefaultManager.init
-fini = base_app.DefaultManager.fini
-onmain = base_app.DefaultManager.onmain
-onwrapmain = base_app.DefaultManager.onwrapmain
-start = base_app.DefaultManager.start
-main = base_app.DefaultManager.main
-
-Error = base_app.Error
-BrokenWrapperError = base_app.BrokenWrapperError
 
 
 @onmain

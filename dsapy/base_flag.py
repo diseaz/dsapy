@@ -6,7 +6,7 @@ import inspect
 import logging
 import sys
 
-from . import base_app
+from . import base_app as app
 
 _logger = logging.getLogger(__name__)
 
@@ -19,134 +19,165 @@ class MainFuncConflictError(Error):
     """Main functions with conflicting names."""
 
 
-class Manager(object):
-    def __init__(self):
-        self.argparsers = []
-        self.subcommands = []
+class _globals:
+    argparsers = []
 
-    def register_main(self, main_func, add_arguments=None, **kwargs):
-        self.subcommands.append(self.wrap_main_func(main_func, add_arguments, kwargs))
-        return main_func
 
-    def argroup(self, title, *args, **kwargs):
-        def argroup_wrapper(func):
-            def argparser(parser):
-                pargs = (title,) + args
-                argroup = parser.add_argument_group(*pargs, **kwargs)
-                return func(argroup)
-            self.argparsers.append(argparser)
-            return func
-        return argroup_wrapper
-
-    def argparser(self, func):
-        self.argparsers.append(func)
+def argroup(title, description=None):
+    def argroup_wrapper(func):
+        def argparser(parser):
+            argroup = parser.add_argument_group(title, description)
+            return func(argroup)
+        _globals.argparsers.append(argparser)
         return func
+    return argroup_wrapper
 
-    def wrap_main_func(self, func, add_arguments=None, parser_kwargs={}):
-        if func is None:
-            return None
-        doc = parser_kwargs.get('description') or func.__doc__ or getattr(inspect.getmodule(func), '__doc__')
-        help = None if doc is None else doc.split('\n', 1)[0]
-        kwargs = {
-            'description': doc,
-            'help': help,
-        }
-        kwargs.update(parser_kwargs)
-        func.parser_kwargs = kwargs
-        func.add_arguments = add_arguments
-        return func
 
-    def populate_single_command_argparser(self, argparser, main_func):
-        for g in self.argparsers:
-            g(argparser)
-        add_arguments = getattr(main_func, 'add_arguments', None)
-        if add_arguments != None:
-            add_arguments(argparser)
-        argparser.set_defaults(main_func=main_func)
+def argparser(func):
+    self.argparsers.append(func)
+    return func
 
-    def populate_multi_command_argparser(self, argparser, commands):
-        subparsers = argparser.add_subparsers(title='subcommands')
-        for cmd in commands:
-            kwargs = cmd.parser_kwargs.copy()
-            n = kwargs.pop('name', getattr(cmd, 'name', getattr(cmd, '__name__', None)))
-            parser = subparsers.add_parser(
-                name=n,
-                formatter_class=DefaultFormatter,
-                fromfile_prefix_chars='@',
-                **kwargs,
-            )
-            self.populate_single_command_argparser(parser, cmd)
 
-    def detect_mode(self, main_func=None, force_subcommands=False):
-        if main_func is not None:
-            return [main_func], False
+_known_kwargs = [
+    'description',
+    'help',
+    'add_arguments',
+    'parser_kwargs',
+    'subparser_kwargs',
+]
 
-        if not self.subcommands:
-            raise MainFuncConflictError('No main functions registered')
+@app.onwrapmain
+def _set_flag_properties(func, **kwargs):
+    for n in _known_kwargs:
+        if n in kwargs:
+            setattr(func, n, kwargs[n])
+    return func
 
-        seen = {}
-        mains = []
-        for s in self.subcommands:
-            n = getattr(s, 'name', None) or getattr(s, '__name__', None)
-            if n is None:
-                mains.append(s)
-            elif n in seen:
-                raise MainFuncConflictError('Subcommand name conflict: name={!r}'.format(n))
-            else:
-                seen[n] = s
 
-        if len(mains) > 1:
-            raise MainFuncConflictError('Too many unnamed mains')
-        elif len(mains) == 1:
-            if force_subcommands:
-                raise MainFuncConflictError('Unnamed main with force_subcommands')
-            elif len(self.subcommands) > 1:
-                raise MainFuncConflictError('Unnamed main with more than one subcommand')
+@app.init
+def _init_parse_flags(**kwargs):
+    '''Parses flags in initialization sequence.
 
-        multicommand = (len(self.subcommands) > 1) or force_subcommands
-        return self.subcommands, multicommand
+    Args:
 
-    def parse_single_command_args(self, main_func, **kwargs):
-        parser_kwargs = main_func.parser_kwargs.copy()
-        parser_kwargs.update(kwargs)
-        parser_kwargs.pop('help', None)
-        argparser = argparse.ArgumentParser(
-            formatter_class=DefaultFormatter,
-            fromfile_prefix_chars='@',
-            **parser_kwargs
-        )
-        self.populate_single_command_argparser(argparser, main_func)
-        flags = argparser.parse_args()
-        if not hasattr(flags, 'main_func'):
-            argparser.error('No main function')
-        return flags
+        - main_func: explicit main function provided to `app.start` or
+          preselected by some earlier init function in the sequence.
 
-    def parse_multi_command_args(self, commands, **kwargs):
-        argparser = argparse.ArgumentParser(
-            formatter_class=DefaultFormatter,
-            fromfile_prefix_chars='@',
-            **kwargs
-        )
-        self.populate_multi_command_argparser(argparser, commands)
-        flags = argparser.parse_args()
-        if not hasattr(flags, 'main_func'):
-            argparser.error('Subcommand is required')
-        return flags
+        - multicommand: if there was only one command registered with
+          `app.main`, act as if there is multiple commands.
+    '''
+    commands, multicommand, kwargs = _detect_mode(**kwargs)
+    if multicommand:
+        flags = _parse_multi_command_args(commands, **kwargs)
+    else:
+        flags = _parse_single_command_args(commands[0], **kwargs)
+    kwargs['flags'] = flags
+    if hasattr(flags, 'main_func'):
+        kwargs['main_func'] = flags.main_func
+    return kwargs
 
-    def parse_args(self, main_func=None, force_subcommands=False, **kwargs):
-        commands, multicommand = self.detect_mode(main_func=main_func, force_subcommands=force_subcommands)
-        if multicommand:
-            return self.parse_multi_command_args(commands, **kwargs)
+
+def _detect_mode(main_func=None, multicommand=False, **kwargs):
+    if main_func is not None:
+        return [main_func], False, kwargs
+
+    subcommands = app.get_commands()
+    if not subcommands:
+        raise MainFuncConflictError('No main functions registered')
+
+    seen = {}
+    mains = []
+    for s in subcommands:
+        name = _command_name(s)
+        if name is None:
+            mains.append(s)
+        elif name in seen:
+            raise MainFuncConflictError('Subcommand name conflict: name={!r}'.format(name))
         else:
-            return self.parse_single_command_args(commands[0], **kwargs)
+            seen[name] = s
 
-    def parse_flags(self, main_func=None, force_subcommands=False, **kwargs):
-        if main_func is not None and not hasattr(main_func, 'add_arguments'):
-            main_func = self.wrap_main_func(main_func)
-        flags = self.parse_args(main_func=main_func, force_subcommands=force_subcommands, **kwargs)
-        kwargs['flags'] = flags
-        kwargs['main_func'] = getattr(flags, 'main_func', main_func)
-        yield kwargs
+    if len(mains) > 1:
+        raise MainFuncConflictError('Too many unnamed mains')
+    elif len(mains) == 1:
+        if multicommand:
+            raise MainFuncConflictError('Unnamed main with multicommand')
+        elif len(subcommands) > 1:
+            raise MainFuncConflictError('Unnamed main with more than one subcommand')
+
+    multicommand = (len(subcommands) > 1) or multicommand
+    return subcommands, multicommand, kwargs
+
+
+def _command_name(cmd):
+    return getattr(cmd, 'name', None) or getattr(cmd, '__name__', None)
+
+
+def _command_kwargs(cmd):
+    kwargs = {}
+    description = getattr(cmd, 'description', None) or cmd.__doc__ or getattr(inspect.getmodule(cmd), '__doc__', None)
+    if description:
+        kwargs['description'] = description
+    help = getattr(cmd, 'help', None) or (None if description is None else description.split('\n', 1)[0])
+    if help:
+        kwargs['help'] = help
+    return kwargs
+
+
+def _parse_single_command_args(main_func, **kwargs):
+    parser_kwargs = _command_kwargs(main_func)
+    if 'parser_kwargs' in kwargs:
+        parser_kwargs.update(kwargs['parser_kwargs'])
+    if hasattr(main_func, 'parser_kwargs'):
+        parser_kwargs.update(main_func.parser_kwargs)
+    argparser = argparse.ArgumentParser(
+        formatter_class=DefaultFormatter,
+        fromfile_prefix_chars='@',
+        **parser_kwargs
+    )
+    _populate_single_command_argparser(argparser, main_func)
+    flags = argparser.parse_args()
+    if not hasattr(flags, 'main_func'):
+        argparser.error('No main function')
+    return flags
+
+
+def _populate_single_command_argparser(argparser, main_func):
+    for g in _globals.argparsers:
+        g(argparser)
+    if hasattr(main_func, 'add_arguments'):
+        main_func.add_arguments(argparser)
+    argparser.set_defaults(main_func=main_func)
+
+
+def _parse_multi_command_args(commands, **kwargs):
+    parser_kwargs = getattr(kwargs, 'parser_kwargs', {})
+    argparser = argparse.ArgumentParser(
+        formatter_class=DefaultFormatter,
+        fromfile_prefix_chars='@',
+        **parser_kwargs
+    )
+    subparser_kwargs = getattr(kwargs, 'subparser_kwargs', {})
+    _populate_multi_command_argparser(argparser, commands, subparser_kwargs)
+    flags = argparser.parse_args()
+    if not hasattr(flags, 'main_func'):
+        argparser.error('Subcommand is required')
+    return flags
+
+
+def _populate_multi_command_argparser(argparser, commands, subparser_kwargs):
+    subparsers = argparser.add_subparsers(title='subcommands')
+    for cmd in commands:
+        kwargs = _command_kwargs(cmd)
+        kwargs.update(subparser_kwargs)
+        if hasattr(cmd, 'parser_kwargs'):
+            kwargs.update(cmd.parser_kwargs)
+        parser = subparsers.add_parser(
+            name=_command_name(cmd),
+            formatter_class=DefaultFormatter,
+            fromfile_prefix_chars='@',
+            **kwargs,
+        )
+        _populate_single_command_argparser(parser, cmd)
 
 
 class DefaultFormatter(
@@ -154,8 +185,3 @@ class DefaultFormatter(
         argparse.ArgumentDefaultsHelpFormatter,
 ):
     pass
-
-
-DefaultManager = Manager()
-base_app.DefaultManager.onmain(DefaultManager.parse_flags)
-base_app.DefaultManager.onwrapmain(DefaultManager.register_main)
