@@ -38,8 +38,8 @@ def onmain(func):
     )
 
 
-def onwrapmain(handler_func):
-    _globals.onwrapmain.append(handler_func)
+def onwrapmain(func):
+    _globals.onwrapmain.append(func)
 
 
 def main(**kwargs):
@@ -51,8 +51,11 @@ def main(**kwargs):
     command line flags.
     '''
     def main_wrapper(main_func):
+        kw = kwargs.copy()
+        kw['main_func'] = main_func
         for handler in _globals.onwrapmain:
-            main_func = handler(main_func, **kwargs)
+            kw = handler(**kw)
+        main_func = kw['main_func']
         _globals.main.append(main_func)
         return main_func
     return main_wrapper

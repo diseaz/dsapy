@@ -47,11 +47,12 @@ _known_kwargs = [
 ]
 
 @app.onwrapmain
-def _set_flag_properties(func, **kwargs):
+def _set_flag_properties(**kwargs):
+    main_func = kwargs['main_func']
     for n in _known_kwargs:
         if n in kwargs:
-            setattr(func, n, kwargs[n])
-    return func
+            setattr(main_func, n, kwargs[n])
+    return kwargs
 
 
 @app.init
