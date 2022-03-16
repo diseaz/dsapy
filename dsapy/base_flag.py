@@ -38,21 +38,33 @@ def argparser(func):
     return func
 
 
-_known_kwargs = [
-    'description',
-    'help',
+_main_kwargs = [
+    'name',
     'add_arguments',
     'parser_kwargs',
-    'subparser_kwargs',
 ]
 
 @app.onwrapmain
 def _set_flag_properties(**kwargs):
-    main_func = kwargs['main_func']
-    for n in _known_kwargs:
-        if n in kwargs:
-            setattr(main_func, n, kwargs[n])
-    return kwargs
+    kw = kwargs.copy()
+
+    parser_kwargs = kw.get('parser_kwargs', {})
+    description = kw.pop('description', None)
+    if description is not None:
+        parser_kwargs['description'] = description
+    help = kw.pop('help', None)
+    if help is None and description:
+        help = description.split('\n', 1)[0]
+    if help is not None:
+        parser_kwargs['help'] = help
+    kw['parser_kwargs'] = parser_kwargs
+
+    main_func = kw['main_func']
+    for n in _main_kwargs:
+        if n not in kw:
+            continue
+        setattr(main_func, n, kw[n])
+    return kw
 
 
 @app.init
@@ -113,23 +125,12 @@ def _command_name(cmd):
     return getattr(cmd, 'name', None) or getattr(cmd, '__name__', None)
 
 
-def _command_kwargs(cmd):
-    kwargs = {}
-    description = getattr(cmd, 'description', None) or cmd.__doc__ or getattr(inspect.getmodule(cmd), '__doc__', None)
-    if description:
-        kwargs['description'] = description
-    help = getattr(cmd, 'help', None) or (None if description is None else description.split('\n', 1)[0])
-    if help:
-        kwargs['help'] = help
-    return kwargs
-
-
 def _parse_single_command_args(main_func, **kwargs):
-    parser_kwargs = _command_kwargs(main_func)
-    if 'parser_kwargs' in kwargs:
-        parser_kwargs.update(kwargs['parser_kwargs'])
-    if hasattr(main_func, 'parser_kwargs'):
-        parser_kwargs.update(main_func.parser_kwargs)
+    parser_kwargs = {}
+    parser_kwargs.update(kwargs.get('parser_kwargs', {}))
+    parser_kwargs.update(kwargs.get('subparser_kwargs', {}))
+    parser_kwargs.update(getattr(main_func, 'parser_kwargs', {}))
+
     argparser = argparse.ArgumentParser(
         formatter_class=DefaultFormatter,
         fromfile_prefix_chars='@',
@@ -157,26 +158,24 @@ def _parse_multi_command_args(commands, **kwargs):
         fromfile_prefix_chars='@',
         **parser_kwargs
     )
-    subparser_kwargs = getattr(kwargs, 'subparser_kwargs', {})
-    _populate_multi_command_argparser(argparser, commands, subparser_kwargs)
+    _populate_multi_command_argparser(argparser, commands, kwargs)
     flags = argparser.parse_args()
     if not hasattr(flags, 'main_func'):
         argparser.error('Subcommand is required')
     return flags
 
 
-def _populate_multi_command_argparser(argparser, commands, subparser_kwargs):
+def _populate_multi_command_argparser(argparser, commands, kwargs):
     subparsers = argparser.add_subparsers(title='subcommands')
     for cmd in commands:
-        kwargs = _command_kwargs(cmd)
-        kwargs.update(subparser_kwargs)
-        if hasattr(cmd, 'parser_kwargs'):
-            kwargs.update(cmd.parser_kwargs)
+        parser_kwargs = {}
+        parser_kwargs.update(kwargs.get('subparser_kwargs', {}))
+        parser_kwargs.update(getattr(cmd, 'parser_kwargs', {}))
         parser = subparsers.add_parser(
             name=_command_name(cmd),
             formatter_class=DefaultFormatter,
             fromfile_prefix_chars='@',
-            **kwargs,
+            **parser_kwargs,
         )
         _populate_single_command_argparser(parser, cmd)
 

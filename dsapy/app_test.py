@@ -83,44 +83,119 @@ a end
     def test_wrappers_args(self):
         self._module('main', '''
 from dsapy import app
-
-def kwstr(kwargs):
-    kw = kwargs.copy()
-    if 'main_func' in kw:
-        kw['main_func'] = kw['main_func'].__name__
-    if 'flags' in kw:
-        f = kw['flags']
-        if hasattr(f, 'main_func') and hasattr(f.main_func, '__name__'):
-            f.main_func = f.main_func.__name__
-    return kw
+from dsapy import dsapy_test
 
 @app.onwrapmain
 def a(**kwargs):
-    print('a: {!r}'.format(kwstr(kwargs)))
+    print('a: {!r}'.format(dsapy_test.kw_as_str(kwargs)))
     return kwargs
 
 @app.init
 def b(**kwargs):
-    print('b: {!r}'.format(kwstr(kwargs)))
+    print('b: {!r}'.format(dsapy_test.kw_as_str(kwargs)))
 
 @app.onmain
 def c(**kwargs):
-    print('c: {!r}'.format(kwstr(kwargs)))
+    print('c: {!r}'.format(dsapy_test.kw_as_str(kwargs)))
     yield kwargs
 
 @app.main(x=42, y=7)
 def m(**kwargs):
-    print('m: {!r}'.format(kwstr(kwargs)))
+    print('m: {!r}'.format(dsapy_test.kw_as_str(kwargs)))
 
 app.start(x=43, z=100500)
 ''')
         out, err = self._run_module('main')
         self.assertEqual('', err)
-        self.assertEqual('''a: {'x': 42, 'y': 7, 'main_func': 'm'}
-b: {'x': 43, 'z': 100500, 'flags': Namespace(main_func='m'), 'main_func': 'm'}
-c: {'x': 43, 'z': 100500, 'flags': Namespace(main_func='m'), 'main_func': 'm'}
-m: {'x': 43, 'z': 100500, 'flags': Namespace(main_func='m')}
+        self.assertEqual('''a: "{'x': 42, 'y': 7, 'main_func': <function m at 0xADDRESS>, 'parser_kwargs': {}}"
+b: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
+c: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
+m: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>)}"
 ''', out)
+
+    def test_multicommand_func(self):
+        self._module('main', '''
+from dsapy import app
+import cmdone
+import cmdtwo
+
+app.start()
+''')
+
+        self._module('cmdone', '''
+from dsapy import app
+
+class CmdOne(app.Command):
+    """Command one.
+
+    This is full description from docstring."""
+
+    help = 'First command.'  # Overrides default help extracted from docstring.
+
+    def main(self):
+        print('cmdone')
+''')
+
+        self._module('cmdtwo', '''
+from dsapy import app
+
+class CmdTwo(app.Command):
+    """Second command.
+
+    This description will be overridden.
+    """
+
+    name = 'cmdtwo'
+
+    # Overrides description from docstring
+    description = """Command two.
+
+    This description overrides docstring."""
+
+    def main(self):
+        print('cmdtwo')
+''')
+
+        out, err = self._run_module('main', '-h')
+        self.assertEqual('', err)
+        self.assertEqual('''usage: main.py [-h] {CmdOne,cmdtwo} ...
+
+optional arguments:
+  -h, --help       show this help message and exit
+
+subcommands:
+  {CmdOne,cmdtwo}
+    CmdOne         First command.
+    cmdtwo         Command two.
+''', out)
+
+        out, err = self._run_module('main', 'CmdOne', '-h')
+        self.assertEqual('', err)
+        self.assertEqual('''usage: main.py CmdOne [-h]
+
+Command one.
+
+    This is full description from docstring.
+
+optional arguments:
+  -h, --help  show this help message and exit
+''', out)
+
+        out, err = self._run_module('main', 'cmdtwo', '-h')
+        self.assertEqual('', err)
+        self.assertEqual('''usage: main.py cmdtwo [-h]
+
+Command two.
+
+    This description overrides docstring.
+
+optional arguments:
+  -h, --help  show this help message and exit
+''', out)
+
+        out, err = self._run_module('main', 'CmdOne')
+        self.assertEqual('', err)
+        self.assertEqual('cmdone\n', out)
 
     def _mpath(self, name):
         return os.path.join(self.tempdir, name + '.py')

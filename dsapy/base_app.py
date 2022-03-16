@@ -51,7 +51,7 @@ def main(**kwargs):
     command line flags.
     '''
     def main_wrapper(main_func):
-        kw = kwargs.copy()
+        kw = kwargs
         kw['main_func'] = main_func
         for handler in _globals.onwrapmain:
             kw = handler(**kw)

@@ -31,17 +31,14 @@ class _commandMeta(type):
         if skip:
             return new_cls
 
-        parser_kwargs = getattr(new_cls, 'parser_kwargs', {}).copy()
-        if new_cls.__doc__:
-            parser_kwargs['description'] = new_cls.__doc__
-        if hasattr(new_cls, 'add_arguments'):
-            parser_kwargs['add_arguments'] = new_cls.add_arguments
-
         def main_func(**kwargs):
             return new_cls(**kwargs).main()
 
-        main_func.name = getattr(new_cls, 'name', name)
-        main(**parser_kwargs)(main_func)
+        main(
+            name=getattr(new_cls, 'name', name),
+            help=getattr(new_cls, 'help', None),
+            description=getattr(new_cls, 'description', None) or new_cls.__doc__,
+        )(main_func)
 
         return new_cls
 
