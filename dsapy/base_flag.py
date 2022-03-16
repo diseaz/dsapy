@@ -42,23 +42,33 @@ _main_kwargs = [
     'name',
     'add_arguments',
     'parser_kwargs',
+    'subparser_kwargs',
 ]
 
-@app.onwrapmain
-def _set_flag_properties(**kwargs):
+
+def _normalize_kwargs(kwargs):
     kw = kwargs.copy()
 
     parser_kwargs = kw.get('parser_kwargs', {})
     description = kw.pop('description', None)
     if description is not None:
         parser_kwargs['description'] = description
+    kw['parser_kwargs'] = parser_kwargs
+
+    subparser_kwargs = kw.get('subparser_kwargs', {})
     help = kw.pop('help', None)
     if help is None and description:
         help = description.split('\n', 1)[0]
     if help is not None:
-        parser_kwargs['help'] = help
-    kw['parser_kwargs'] = parser_kwargs
+        subparser_kwargs['help'] = help
+    kw['subparser_kwargs'] = subparser_kwargs
 
+    return kw
+
+
+@app.onwrapmain
+def _set_flag_properties(**kwargs):
+    kw = _normalize_kwargs(kwargs)
     main_func = kw['main_func']
     for n in _main_kwargs:
         if n not in kw:
@@ -79,6 +89,7 @@ def _init_parse_flags(**kwargs):
         - multicommand: if there was only one command registered with
           `app.main`, act as if there is multiple commands.
     '''
+    kwargs = _normalize_kwargs(kwargs)
     commands, multicommand, kwargs = _detect_mode(**kwargs)
     if multicommand:
         flags = _parse_multi_command_args(commands, **kwargs)
@@ -127,9 +138,8 @@ def _command_name(cmd):
 
 def _parse_single_command_args(main_func, **kwargs):
     parser_kwargs = {}
-    parser_kwargs.update(kwargs.get('parser_kwargs', {}))
-    parser_kwargs.update(kwargs.get('subparser_kwargs', {}))
     parser_kwargs.update(getattr(main_func, 'parser_kwargs', {}))
+    parser_kwargs.update(kwargs.get('parser_kwargs', {}))
 
     argparser = argparse.ArgumentParser(
         formatter_class=DefaultFormatter,
@@ -171,6 +181,7 @@ def _populate_multi_command_argparser(argparser, commands, kwargs):
         parser_kwargs = {}
         parser_kwargs.update(kwargs.get('subparser_kwargs', {}))
         parser_kwargs.update(getattr(cmd, 'parser_kwargs', {}))
+        parser_kwargs.update(getattr(cmd, 'subparser_kwargs', {}))
         parser = subparsers.add_parser(
             name=_command_name(cmd),
             formatter_class=DefaultFormatter,

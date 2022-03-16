@@ -107,10 +107,41 @@ app.start(x=43, z=100500)
 ''')
         out, err = self._run_module('main')
         self.assertEqual('', err)
-        self.assertEqual('''a: "{'x': 42, 'y': 7, 'main_func': <function m at 0xADDRESS>, 'parser_kwargs': {}}"
-b: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
-c: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
-m: "{'x': 43, 'z': 100500, 'flags': Namespace(main_func=<function m at 0xADDRESS>)}"
+        self.assertEqual('''a: "{'x': 42, 'y': 7, 'main_func': <function m at 0xADDRESS>, 'parser_kwargs': {}, 'subparser_kwargs': {}}"
+b: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
+c: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
+m: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>)}"
+''', out)
+
+    def test_singlecommand_func_attrs(self):
+        self._module('main', '''
+from dsapy import app
+
+def main(**kwargs):
+    """Test short help.
+
+    Test long description."""
+    print('args: {!r}'.format(kwargs))
+
+main.help = 'main.help'
+main.description = 'main.description'
+
+app.main(
+    name='test',
+    help='app.main.help',
+    description='app.main.description',
+)(main)
+
+app.start(help='start.help', description='start.description')
+''')
+        out, err = self._run_module('main', '-h')
+        self.assertEqual('', err)
+        self.assertEqual('''usage: main.py [-h]
+
+start.description
+
+optional arguments:
+  -h, --help  show this help message and exit
 ''', out)
 
     def test_multicommand_func(self):
