@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="diseaz-dsapy",
-    version="0.0.4",
+    version="0.0.5",
     author="Dmitry Azhichakov",
     author_email="dazhichakov@gmail.com",
     description="Simple basic framework for command-line tools",
@@ -20,4 +20,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    package_data={
+        'dsapy': ['py.typed'],
+    },
 )

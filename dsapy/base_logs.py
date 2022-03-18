@@ -6,13 +6,15 @@ import os
 import sys
 import traceback
 
+from typing import *
+
 
 _default_format_long = '%(asctime)s %(levelname)s %(name)s@%(lineno)d: %(message)s'
 _default_format_short = '%(asctime)s %(message)s'
 _default_format_tiny = '%(message)s'
 _default_datefmt = '%Y-%m-%d %H:%M:%S'
 
-Levels = {
+Levels: Dict[str, Dict[str, Any]] = {
     'error': {
         'level': logging.ERROR,
         'datefmt': _default_datefmt,

@@ -6,6 +6,8 @@ import inspect
 import logging
 import sys
 
+from typing import *
+
 from . import base_app as app
 
 _logger = logging.getLogger(__name__)
@@ -20,12 +22,12 @@ class MainFuncConflictError(Error):
 
 
 class _globals:
-    argparsers = []
+    argparsers: List[Callable[[argparse.ArgumentParser], Any]] = []
 
 
-def argroup(title, description=None):
-    def argroup_wrapper(func):
-        def argparser(parser):
+def argroup(title: str, description: str = None) -> Callable[[Callable[..., Any]], Callable[[argparse.ArgumentParser], Any]]:
+    def argroup_wrapper(func: Callable[..., Any]) -> Callable[[argparse.ArgumentParser], Any]:
+        def argparser(parser: argparse.ArgumentParser) -> Any:
             argroup = parser.add_argument_group(title, description)
             return func(argroup)
         _globals.argparsers.append(argparser)
@@ -33,8 +35,8 @@ def argroup(title, description=None):
     return argroup_wrapper
 
 
-def argparser(func):
-    self.argparsers.append(func)
+def argparser(func: Callable[[argparse.ArgumentParser], Any]) -> Callable[[argparse.ArgumentParser], Any]:
+    _globals.argparsers.append(func)
     return func
 
 
@@ -46,17 +48,19 @@ _main_kwargs = [
 ]
 
 
-def _normalize_kwargs(kwargs):
+def _normalize_kwargs(kwargs, **defaults):
     kw = kwargs.copy()
 
     parser_kwargs = kw.get('parser_kwargs', {})
-    description = kw.pop('description', None)
+    d1 = kw.pop('description', None)
+    description = d1 or parser_kwargs.get('description', None) or defaults.get('description', None)
     if description is not None:
         parser_kwargs['description'] = description
     kw['parser_kwargs'] = parser_kwargs
 
     subparser_kwargs = kw.get('subparser_kwargs', {})
-    help = kw.pop('help', None)
+    h1 = kw.pop('help', None)
+    help = h1 or defaults.get('help', None)
     if help is None and description:
         help = description.split('\n', 1)[0]
     if help is not None:
@@ -68,8 +72,13 @@ def _normalize_kwargs(kwargs):
 
 @app.onwrapmain
 def _set_flag_properties(**kwargs):
-    kw = _normalize_kwargs(kwargs)
-    main_func = kw['main_func']
+    main_func = kwargs['main_func']
+    kw = _normalize_kwargs(
+        kwargs,
+        description=getattr(main_func, 'description', None) or main_func.__doc__,
+        help=getattr(main_func, 'help', None),
+    )
+
     for n in _main_kwargs:
         if n not in kw:
             continue

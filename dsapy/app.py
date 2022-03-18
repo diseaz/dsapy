@@ -5,6 +5,7 @@
 
 import logging
 import sys
+from typing import *
 
 from .base_app import *
 from . import base_flag
@@ -33,6 +34,10 @@ class _commandMeta(type):
 
         def main_func(**kwargs):
             return new_cls(**kwargs).main()
+
+        add_arguments = getattr(new_cls, 'add_arguments', None)
+        if add_arguments:
+            main_func.add_arguments = add_arguments
 
         main(
             name=getattr(new_cls, 'name', name),

@@ -7,6 +7,8 @@ import collections
 import contextlib
 import sys
 
+from typing import *
+
 
 class Error(Exception):
     """Base class for errors in the module."""
@@ -16,33 +18,42 @@ class BrokenWrapperError(Error):
     """Something wrong with wrapper for main."""
 
 
+KwArgs = Dict[str, Any]
+KwArgsGenerator = Generator[KwArgs, None, None]
+InitFunc = Callable[..., Optional[KwArgs]]
+FiniFunc = Callable[..., None]
+OnMainFunc = Callable[..., KwArgsGenerator]
+OnMainHandler = Callable[..., ContextManager[KwArgs]]
+OnWrapMainFunc = Callable[..., KwArgs]
+MainFunc = Callable[..., Any]
+
 class _globals:
-    init = []
-    fini = []
-    onmain = []
-    onwrapmain = []
-    main = []
+    init: List[InitFunc] = []
+    fini: List[FiniFunc] = []
+    onmain: List[OnMainHandler] = []
+    onwrapmain: List[OnWrapMainFunc] = []
+    main: List[MainFunc] = []
 
 
-def init(func):
+def init(func: InitFunc) -> None:
     _globals.init.append(func)
 
 
-def fini(func):
+def fini(func: FiniFunc):
     _globals.fini.append(func)
 
 
-def onmain(func):
+def onmain(func: OnMainFunc):
     _globals.onmain.append(
         contextlib.contextmanager(func)
     )
 
 
-def onwrapmain(func):
+def onwrapmain(func: OnWrapMainFunc):
     _globals.onwrapmain.append(func)
 
 
-def main(**kwargs):
+def main(**kwargs: Any):
     '''Declares a function to be a main function.
 
     There can be any number of main functions declared: 0, 1 or more.  It's
@@ -50,7 +61,7 @@ def main(**kwargs):
     several or provide a replacement.  Selection may be based e.g. on
     command line flags.
     '''
-    def main_wrapper(main_func):
+    def main_wrapper(main_func: MainFunc):
         kw = kwargs
         kw['main_func'] = main_func
         for handler in _globals.onwrapmain:
@@ -61,20 +72,20 @@ def main(**kwargs):
     return main_wrapper
 
 
-def get_commands():
+def get_commands() -> List[MainFunc]:
     return _globals.main
 
 
-def start(main_func=None, **kwargs):
+def start(main_func: MainFunc = None, **kwargs: Any) -> None:
     with contextlib.ExitStack() as estack:
-        for f in _globals.fini:
-            estack.callback(f)
+        for fini_f in _globals.fini:
+            estack.callback(fini_f)
 
         if main_func is not None:
             kwargs['main_func'] = main_func
 
-        for f in _globals.init:
-            new_kwargs = f(**kwargs)
+        for init_f in _globals.init:
+            new_kwargs = init_f(**kwargs)
             if new_kwargs is not None:
                 kwargs = new_kwargs
 
