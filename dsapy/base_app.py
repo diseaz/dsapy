@@ -3,11 +3,9 @@
 
 """Base application framework."""
 
-import collections
-import contextlib
-import sys
+from typing import Any, Dict, Callable, Generator, Optional, ContextManager, List
 
-from typing import *
+import contextlib
 
 
 class Error(Exception):
@@ -26,6 +24,7 @@ OnMainFunc = Callable[..., KwArgsGenerator]
 OnMainHandler = Callable[..., ContextManager[KwArgs]]
 OnWrapMainFunc = Callable[..., KwArgs]
 MainFunc = Callable[..., Any]
+
 
 class _globals:
     init: List[InitFunc] = []

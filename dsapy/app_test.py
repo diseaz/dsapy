@@ -1,12 +1,10 @@
 #!/usr/bin/python3
 # -*- mode: python; coding: utf-8 -*-
 
-import contextlib
 import os
 import os.path
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 
@@ -111,7 +109,7 @@ app.start(x=43, z=100500)
 b: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
 c: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>), 'main_func': <function m at 0xADDRESS>}"
 m: "{'x': 43, 'z': 100500, 'parser_kwargs': {}, 'subparser_kwargs': {}, 'flags': Namespace(main_func=<function m at 0xADDRESS>)}"
-''', out)
+''', out)  # noqa: E501
 
     def test_singlecommand_func_attrs(self):
         self._module('main', '''

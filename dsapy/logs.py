@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
-from logging import *
+import logging
 
 from dsapy import app
 from dsapy import flag
@@ -46,7 +46,7 @@ def _flags(argroup):
 
 @app.onmain
 def _init(**kwargs):
-    root_logger = getLogger()
+    root_logger = logging.getLogger()
     root_logger.handlers = []
 
     flags = kwargs['flags']
@@ -55,7 +55,7 @@ def _init(**kwargs):
         basic_args['format'] = flags.log_format
     if flags.log_datefmt is not None:
         basic_args['datefmt'] = flags.log_datefmt
-    basicConfig(**basic_args)
+    logging.basicConfig(**basic_args)
 
     yield kwargs
 

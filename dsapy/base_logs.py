@@ -1,12 +1,10 @@
 #!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
+from typing import Any, Dict
+
 import logging
 import os
-import sys
-import traceback
-
-from typing import *
 
 
 _default_format_long = '%(asctime)s %(levelname)s %(name)s@%(lineno)d: %(message)s'
@@ -67,5 +65,6 @@ def _getDefaultLevelName():
         if 'alias' not in level_record:
             return log_level
         log_level = level_record['alias']
+
 
 logging.basicConfig(**Levels[_getDefaultLevelName()])

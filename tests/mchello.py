@@ -43,7 +43,7 @@ def hello(flags, **kwargs):
 class Say(app.Command):
     """Says text."""
 
-    name='say'
+    name = 'say'
 
     @classmethod
     def add_arguments(self, argparser):

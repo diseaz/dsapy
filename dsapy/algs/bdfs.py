@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # -*- mode: python; coding: utf-8 -*-
 
-from dsapy.algs.error import Error
-
 import collections
 
 

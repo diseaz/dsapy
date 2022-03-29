@@ -1,12 +1,10 @@
 #!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
-import argparse
-import inspect
-import logging
-import sys
+from typing import Any, List, Callable
 
-from typing import *
+import argparse
+import logging
 
 from . import base_app as app
 
@@ -25,7 +23,10 @@ class _globals:
     argparsers: List[Callable[[argparse.ArgumentParser], Any]] = []
 
 
-def argroup(title: str, description: str = None) -> Callable[[Callable[..., Any]], Callable[[argparse.ArgumentParser], Any]]:
+def argroup(
+        title: str,
+        description: str = None,
+) -> Callable[[Callable[..., Any]], Callable[[argparse.ArgumentParser], Any]]:
     def argroup_wrapper(func: Callable[..., Any]) -> Callable[[argparse.ArgumentParser], Any]:
         def argparser(parser: argparse.ArgumentParser) -> Any:
             argroup = parser.add_argument_group(title, description)
