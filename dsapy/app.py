@@ -3,9 +3,10 @@
 
 """Base application framework."""
 
+from typing import Any
+
 import logging
 import sys
-from typing import *
 
 from .base_app import *
 from . import base_flag
@@ -51,7 +52,9 @@ class _commandMeta(type):
 class Command(metaclass=_commandMeta, skip=True):
     """Base class for subcommand."""
 
-    def __init__(self, **kwargs):
+    flags = object()
+
+    def __init__(self, **kwargs: Any) -> None:
         self.__dict__.update(kwargs)
 
     @classmethod
