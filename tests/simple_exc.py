@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 # -*- mode: python; coding: utf-8 -*-
 
-import os
-
 from dsapy import app
 from dsapy import flag
 

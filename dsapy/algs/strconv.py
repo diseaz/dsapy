@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- mode: python; coding: utf-8 -*-
 
-from typing import *
+from typing import Dict, Optional
 
 _bool_values: Dict[str, bool] = {
     'true': True,
@@ -16,6 +16,7 @@ _bool_values: Dict[str, bool] = {
     'n': False,
     '0': False,
 }
+
 
 def parse_bool(s: Optional[str], default: bool = False) -> bool:
     if not s:

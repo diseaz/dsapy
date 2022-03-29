@@ -5,7 +5,6 @@ import os
 import os.path
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 
@@ -44,7 +43,6 @@ def init{0}(**kwargs):
 '''.format(name))
         return self
 
-
     def fini_ok(self, name):
         self.current.append('''
 @app.fini
@@ -52,7 +50,6 @@ def fini{0}(**kwargs):
     logs.info('fini {0}')
 '''.format(name))
         return self
-
 
     def wrapper_ok(self, name):
         self.current.append('''
@@ -64,7 +61,6 @@ def wrapper{0}(**kwargs):
 '''.format(name))
         return self
 
-
     def wrapper_not_iterable(self, name):
         self.current.append('''
 @app.onmain
@@ -74,7 +70,6 @@ def wrapper{0}(**kwargs):
     logs.info('wrapper {0} end')
 '''.format(name))
         return self
-
 
     def wrapper_no_yield(self, name):
         self.current.append('''
@@ -87,7 +82,6 @@ def wrapper{0}(**kwargs):
 '''.format(name))
         return self
 
-
     def wrapper_many_yields(self, name):
         self.current.append('''
 @app.onmain
@@ -99,7 +93,6 @@ def wrapper(**kwargs):
     logs.info('wrapper {0} end')
 '''.format(name))
         return self
-
 
     def main_func(self):
         return '''
@@ -135,19 +128,19 @@ if __name__ == '__main__':
         return mod_file.name
 
     def generate(self):
-        mods = [
+        for m in self.modules:
             self.gen_module(m)
-            for m in self.modules
-        ]
         return self.gen_main()
 
     def execute(self):
         main_path = self.generate()
         env = os.environ.copy()
         env['DSAPY_LOG_LEVEL'] = 'info'
-        p = subprocess.run(['python3', main_path, '--log-level=info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=env)
+        p = subprocess.run(
+            ['python3', main_path, '--log-level=info'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=env,
+        )
         return p.stdout, p.stderr
-
 
     def test_simple_ok(self):
         out, err = (
@@ -167,7 +160,11 @@ if __name__ == '__main__':
             .execute()
         )
         self.assertEqual('', out)
-        self.assertEqual('init 1\ninit 2\nwrapper 1 start\nwrapper 2 start\nmain\nwrapper 2 end\nwrapper 1 end\nfini 2\nfini 1\n', err)
+        self.assertEqual(
+            ('init 1\ninit 2\nwrapper 1 start\nwrapper 2 start\nmain\n'
+             'wrapper 2 end\nwrapper 1 end\nfini 2\nfini 1\n'),
+            err,
+        )
 
 
 def strip_prefix(prefix, s):

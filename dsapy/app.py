@@ -8,8 +8,12 @@ from typing import Any
 import logging
 import sys
 
-from .base_app import *
-from . import base_flag
+from .base_app import \
+    Error, BrokenWrapperError, \
+    init, fini, onmain, onwrapmain, main, start, \
+    get_commands, \
+    KwArgsGenerator  # noqa: F401
+from . import base_flag  # noqa: F401
 
 _logger = logging.getLogger(__name__)
 
@@ -20,7 +24,7 @@ def _handle_exceptions(**kwargs):
         yield kwargs
     except SystemExit:
         raise
-    except:
+    except:  # noqa: E722
         _logger.error('Unhandled exception', exc_info=True)
         sys.exit(1)
 
@@ -52,7 +56,7 @@ class _commandMeta(type):
 class Command(metaclass=_commandMeta, skip=True):
     """Base class for subcommand."""
 
-    flags = object()
+    flags: Any
 
     def __init__(self, **kwargs: Any) -> None:
         self.__dict__.update(kwargs)

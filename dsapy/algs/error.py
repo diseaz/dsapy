@@ -3,5 +3,6 @@
 
 """Base error."""
 
+
 class Error(Exception):
     pass
