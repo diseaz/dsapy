@@ -3,6 +3,8 @@
 
 import logging
 
+from logging import debug, info, warning, error, fatal  # noqa: F401
+
 from dsapy import app
 from dsapy import flag
 from dsapy import base_logs
